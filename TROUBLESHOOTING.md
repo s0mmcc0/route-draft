@@ -1,3 +1,20 @@
+## 🛠️ H2 인메모리 격리 한계 및 자바 TCP 서버 구축을 통한 연동 (2026-06-10)
+
+### 1. 문제 상황
+* 'build.gradle'에 H2 의존성을 추가하고 'jdbc:h2:mem:routedraftdb'로 연결했으나, 포스트맨으로 데이터를 적재해도 외부 툴(VS Code Database Client)에서 'LESSONS' 테이블이 조회되지 않음.
+* 이를 해결하기 위해 단순 주소 변경을 시도했으나 'Connection refused' 오류 발생.
+* 컴파일 과정에서 'cannot find symbol: class Server' 빌드 오류 동반 발생.
+
+### 2. 원인 분석
+* **프로세스 메모리 격리**: 'jdbc:h2:mem' 방식은 해당 JVM 프로세스 내부에만 DB를 가두기 때문에, 외부 독립 프로세스인 VS Code가 접속할 때 서로 다른 메모리 공간을 바라보게 됨.
+* **의존성 스코프 한계**: 기존 'runtimeOnly' 설정은 실행 시점에만 라이브러리를 로드하므로, 자바 코드에서 H2 내장 클래스를 직접 참조하여 컴파일할 때 빌드 엔진이 클래스를 찾지 못함.
+
+### 3. 해결 방법
+* **의존성 스코프 수정**: 'build.gradle' 설정을 'implementation 'com.h2database:h2''로 변경하여 컴파일 시점의 빌드 에러 해결.
+* **H2 내장 TCP 서버 구현**: 'H2ServerConfig.java' 설정을 추가하여 스프링 부트 가동 시 '9092' 포트로 외부 접속을 허용하는 TCP 서버를 내장 구동함.
+* **결과**: 포스트맨 데이터 저장 시 VS Code 데이터베이스 클라이언트를 통해 'PUBLIC.Tables.LESSONS' 내부 데이터가 실시간으로 동기화되어 정상 출력됨을 최종 검증함.
+
+
 ## 🛠️ Spring AI 자동화 구조의 한계 및 RestTemplate 전환 (2026-06-05)
 
 ### 1. 문제 상황

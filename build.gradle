@@ -18,11 +18,20 @@ repositories {
 }
 
 dependencies {
+	// 1. 웹 및 개발 편의성 인프라
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+	// 2. Lombok (컴파일 시점에 getter/setter 자동 생성)
+	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	// 3. 데이터베이스 및 ORM (JPA + 인메모리 H2)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'com.h2database:h2'
+
+	// 4. 테스트 인프라
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
