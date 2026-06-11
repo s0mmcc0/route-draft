@@ -16,6 +16,9 @@ import java.util.List;
 public class LessonService {
     private final LessonRepository lessonRepository;
 
+    /**
+     * 수업 지도안 데이터 생성
+     */
     @Transactional
     public void saveLesson(LessonCreateRequest request, LessonResponse response) {
         Lesson lesson = new Lesson();
@@ -71,5 +74,14 @@ public class LessonService {
     @Transactional(readOnly = true)
     public List<Lesson> getAllLessons() {
         return lessonRepository.findAll();
+    }
+
+    /**
+     * 수업 지도안 개별(상세) 단건 조회
+     */
+    @Transactional(readOnly = true)
+    public Lesson getLessonById(Long id) {
+        return lessonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("해당 ID의 수업 지도안을 찾을 수 없습니다. ID: " + id));
     }
 }

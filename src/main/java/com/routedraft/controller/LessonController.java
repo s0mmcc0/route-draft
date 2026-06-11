@@ -58,4 +58,15 @@ public class LessonController {
         List<Lesson> lessons = lessonService.getAllLessons();
         return ResponseEntity.ok(lessons);
     }
+
+    /**
+     * 3. 수업 지도안 개별(상세) 단건 조회 API (GET)
+     * 주소: GET http://localhost:8080/api/v1/ai/lessons/{id}
+     */
+    @GetMapping("/lessons/{id}")
+    public ResponseEntity<Lesson> getLessonDetail(@PathVariable("id") Long id) {
+        // 서비스 호출해서 단건 데이터 가져오기
+        Lesson lesson = lessonService.getLessonById(id);
+        return ResponseEntity.ok(lesson);
+    }
 }
