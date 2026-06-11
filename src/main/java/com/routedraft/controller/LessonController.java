@@ -3,8 +3,11 @@ package com.routedraft.controller;
 import com.routedraft.dto.LessonCreateRequest;
 import com.routedraft.dto.LessonResponse;
 import com.routedraft.entity.Lesson;
+import com.routedraft.service.AiPromptProvider;
+import com.routedraft.service.LessonPromptProvider;
 import com.routedraft.service.LessonService;
 import com.routedraft.service.OpenAiService;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +19,13 @@ public class LessonController {
 
     private final OpenAiService openAiService;
     private final LessonService lessonService;
+    private final ApplicationContext applicationContext;
 
-    public LessonController(OpenAiService openAiService, LessonService lessonService) {
+    public LessonController(OpenAiService openAiService, LessonService lessonService,
+            ApplicationContext applicationContext) {
         this.openAiService = openAiService;
         this.lessonService = lessonService;
+        this.applicationContext = applicationContext;
     }
 
     /**
@@ -28,7 +34,18 @@ public class LessonController {
      */
     @PostMapping("/lesson")
     public ResponseEntity<LessonResponse> generateLesson(@RequestBody LessonCreateRequest request) {
-        LessonResponse response = openAiService.createLessonPlan(request);
+        // 1. 지도안용 프롬프트 생성
+        AiPromptProvider<LessonCreateRequest> promptProvider = new LessonPromptProvider(applicationContext);
+
+        // 2. 요청 및 LessonResponse DTO 변환
+        LessonResponse response = openAiService.requestAiCompletions(
+                promptProvider,
+                request,
+                "classpath:prompts/lesson-plan.md",
+                LessonResponse.class);
+
+        // 3. DB 저장 및 반환
+        lessonService.saveLesson(request, response);
         return ResponseEntity.ok(response);
     }
 
