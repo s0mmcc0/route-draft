@@ -9,7 +9,10 @@ public record LessonResponse(
     @JsonProperty("learning_objectives") List<String> learningObjectives,
     @JsonProperty("environment_setup") EnvironmentSetup environmentSetup,
     @JsonProperty("lesson_flow") LessonFlow lessonFlow,
-    @JsonProperty("student_activity_sheet") String studentActivitySheet
+    @JsonProperty("student_activity_sheet") String studentActivitySheet,
+    @JsonProperty("motivation_assets") MotivationAssets motivationAssets,
+    @JsonProperty("advanced_learning") AdvancedLearning advancedLearning,
+    @JsonProperty("remedial_assignment") RemedialAssignment remedialAssignment
 ) {
     public record EnvironmentSetup(
         String grouping,
@@ -17,13 +20,41 @@ public record LessonResponse(
     ) {}
 
     public record LessonFlow(
-        StageDetail introduction,
-        StageDetail development,
-        StageDetail conclusion
+        List<FlowStep> introduction,
+        List<FlowStep> development,
+        List<FlowStep> conclusion
     ) {}
 
-    public record StageDetail(
+    public record FlowStep(
+        @JsonProperty("step_name") String stepName,
         String duration,
-        String content
+        @JsonProperty("teacher_activity") String teacherActivity,
+        @JsonProperty("student_activity") String studentActivity,
+        String notes
+    ) {}
+
+    public record MotivationAssets(
+        @JsonProperty("recommended_keywords") List<String> recommendedKeywords,
+        @JsonProperty("education_channel_sources") List<ChannelLinkAsset> educationChannelSources,
+        @JsonProperty("news_channel_sources") List<ChannelLinkAsset> newsChannelSources,
+        @JsonProperty("real_world_story") String realWorldStory
+    ) {}
+
+    public record ChannelLinkAsset(
+        @JsonProperty("channel_name") String channelName,
+        @JsonProperty("video_title") String videoTitle,
+        String url
+    ) {}
+
+    public record AdvancedLearning(
+        String topic,
+        String description,
+        String activity
+    ) {}
+
+    public record RemedialAssignment(
+        @JsonProperty("target_difficulty") String targetDifficulty,
+        @JsonProperty("assignment_content") String assignmentContent,
+        @JsonProperty("guide_for_teacher") String guideForTeacher
     ) {}
 }

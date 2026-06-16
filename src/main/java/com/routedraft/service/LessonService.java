@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,18 +50,33 @@ public class LessonService {
         }
         
         if (response.lessonFlow() != null) {
-            if (response.lessonFlow().introduction() != null) {
-                lesson.setIntroDuration(response.lessonFlow().introduction().duration());
-                lesson.setIntroContent(response.lessonFlow().introduction().content());
+            lesson.setIntroContent(convertFlowStepsToText(response.lessonFlow().introduction()));
+            lesson.setDevContent(convertFlowStepsToText(response.lessonFlow().development()));
+            lesson.setConclContent(convertFlowStepsToText(response.lessonFlow().conclusion()));
+        }
+
+        if (response.motivationAssets() != null) {
+            LessonResponse.MotivationAssets assets = response.motivationAssets();
+            
+            if (assets.recommendedKeywords() != null) {
+                lesson.setMotivationKeywords(String.join(", ", assets.recommendedKeywords()));
             }
-            if (response.lessonFlow().development() != null) {
-                lesson.setDevDuration(response.lessonFlow().development().duration());
-                lesson.setDevContent(response.lessonFlow().development().content());
-            }
-            if (response.lessonFlow().conclusion() != null) {
-                lesson.setConclDuration(response.lessonFlow().conclusion().duration());
-                lesson.setConclContent(response.lessonFlow().conclusion().content());
-            }
+            
+            lesson.setEducationChannels(convertChannelsToText(assets.educationChannelSources()));
+            lesson.setNewsChannels(convertChannelsToText(assets.newsChannelSources()));
+            lesson.setRealWorldStory(assets.realWorldStory());
+        }
+
+        if (response.advancedLearning() != null) {
+            lesson.setAdvancedTopic(response.advancedLearning().topic());
+            lesson.setAdvancedDescription(response.advancedLearning().description());
+            lesson.setAdvancedActivity(response.advancedLearning().activity());
+        }
+
+        if (response.remedialAssignment() != null) {
+            lesson.setRemedialDifficulty(response.remedialAssignment().targetDifficulty());
+            lesson.setRemedialAssignment(response.remedialAssignment().assignmentContent());
+            lesson.setRemedialGuide(response.remedialAssignment().guideForTeacher());
         }
         
         lesson.setActivitySheet(response.studentActivitySheet());
@@ -83,5 +99,20 @@ public class LessonService {
     public Lesson getLessonById(Long id) {
         return lessonRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 ID의 수업 지도안을 찾을 수 없습니다. ID: " + id));
+    }
+
+    private String convertFlowStepsToText(List<LessonResponse.FlowStep> steps) {
+        if (steps == null || steps.isEmpty()) return "";
+        return steps.stream()
+                .map(step -> String.format("[%s (%s)]\n- 교사: %s\n- 학생: %s\n- 유의점: %s",
+                        step.stepName(), step.duration(), step.teacherActivity(), step.studentActivity(), step.notes()))
+                .collect(Collectors.joining("\n\n"));
+    }
+
+    private String convertChannelsToText(List<LessonResponse.ChannelLinkAsset> channels) {
+        if (channels == null || channels.isEmpty()) return "";
+        return channels.stream()
+                .map(ch -> String.format("%s|%s|%s", ch.channelName(), ch.videoTitle(), ch.url()))
+                .collect(Collectors.joining(";;"));
     }
 }

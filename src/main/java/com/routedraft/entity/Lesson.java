@@ -56,24 +56,48 @@ public class Lesson {
     @Column(columnDefinition = "TEXT")
     private String materials;
 
-    @Column(name = "intro_duration")
-    private String introDuration;
-
     @Column(name = "intro_content", columnDefinition = "TEXT")
-    private String introContent;
-
-    @Column(name = "dev_duration")
-    private String devDuration;
+    private String introContent; // 도입 세부 단계 통합 텍스트
 
     @Column(name = "dev_content", columnDefinition = "TEXT")
-    private String devContent;
-
-    @Column(name = "concl_duration")
-    private String conclDuration;
+    private String devContent; // 전개 세부 단계 통합 텍스트
 
     @Column(name = "concl_content", columnDefinition = "TEXT")
-    private String conclContent;
+    private String conclContent; // 정리 세부 단계 통합 텍스트
 
     @Column(name = "activity_sheet", columnDefinition = "TEXT")
     private String activitySheet;
+
+    // [3. 동기유발]
+    @Column(name = "motivation_keywords", columnDefinition = "TEXT")
+    private String motivationKeywords; // 쉼표(,)로 결합한 추천 키워드 저장
+
+    @Column(name = "education_channels", columnDefinition = "TEXT")
+    private String educationChannels; // 직렬화된 교육청 채널 정보 저장 (구분자 ;; 활용)
+
+    @Column(name = "news_channels", columnDefinition = "TEXT")
+    private String newsChannels; // 직렬화된 뉴스 채널 정보 저장 (구분자 ;; 활용)
+
+    @Column(name = "real_world_story", columnDefinition = "TEXT")
+    private String realWorldStory; // 도입부 스토리텔링 텍스트 대본
+
+    // [4. 상위권 심화학습]
+    @Column(name = "advanced_topic")
+    private String advancedTopic; // 심화 주제명
+
+    @Column(name = "advanced_description", columnDefinition = "TEXT")
+    private String advancedDescription; // 심화 미션 설명
+
+    @Column(name = "advanced_activity", columnDefinition = "TEXT")
+    private String advancedActivity; // 구체적 심화 활동 내용
+
+    // [5. 하위권 보충과제]
+    @Column(name = "remedial_difficulty")
+    private String remedialDifficulty; // 미도달 학생용 타겟 난이도
+
+    @Column(name = "remedial_assignment", columnDefinition = "TEXT")
+    private String remedialAssignment; // 보충 과제 문항 내용
+
+    @Column(name = "remedial_guide", columnDefinition = "TEXT")
+    private String remedialGuide; // 교사 지도 가이드 텍스트
 }
