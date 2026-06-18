@@ -11,7 +11,7 @@ public class YoutubeConfig {
     @Value("${youtube.api.base-url}")
     private String baseUrl;
 
-    @Value("${youtube.api.key}")
+    @Value("${youtube.api-key}")
     private String apiKey;
 
     /**

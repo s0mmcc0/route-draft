@@ -43,7 +43,9 @@ public record LessonResponse(
     public record ChannelLinkAsset(
         @JsonProperty("channel_name") String channelName,
         @JsonProperty("video_title") String videoTitle,
-        String url
+        String url,
+        @JsonProperty("video_id") String videoId,
+        @JsonProperty("thumbnail_url") String thumbnailUrl
     ) {}
 
     public record AdvancedLearning(

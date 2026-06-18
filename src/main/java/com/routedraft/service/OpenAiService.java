@@ -36,7 +36,6 @@ public class OpenAiService {
             REQ request,
             String promptPath,
             Class<RES> responseType) {
-                System.out.println("====== [디버깅] 현재 로드된 API Key: " + apiKey);
         String url = "https://api.openai.com/v1/chat/completions";
 
         try {

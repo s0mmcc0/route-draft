@@ -45,8 +45,9 @@ public class LessonController {
                 LessonResponse.class);
 
         // 3. DB 저장 및 반환
-        lessonService.saveLesson(request, response);
-        return ResponseEntity.ok(response);
+        LessonResponse finalResponse = lessonService.saveLesson(request, response);
+
+        return ResponseEntity.ok(finalResponse);
     }
 
     /**

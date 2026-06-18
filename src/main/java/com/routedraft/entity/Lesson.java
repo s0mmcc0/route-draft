@@ -100,4 +100,20 @@ public class Lesson {
 
     @Column(name = "remedial_guide", columnDefinition = "TEXT")
     private String remedialGuide; // 교사 지도 가이드 텍스트
+
+    // [6. 유튜브 API 실시간 연동]
+    @Column(name = "youtube_channel_name")
+    private String youtubeChannelName;
+
+    @Column(name = "youtube_search_url", length = 500)
+    private String youtubeSearchUrl;
+
+    @Column(name = "youtube_video_id")
+    private String youtubeVideoId;
+
+    @Column(name = "youtube_video_title", length = 500)
+    private String youtubeVideoTitle;
+
+    @Column(name = "youtube_thumbnail_url", length = 500)
+    private String youtubeThumbnailUrl;
 }

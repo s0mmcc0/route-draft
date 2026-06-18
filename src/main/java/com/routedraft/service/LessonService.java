@@ -4,10 +4,13 @@ import com.routedraft.dto.LessonCreateRequest;
 import com.routedraft.dto.LessonResponse;
 import com.routedraft.entity.Lesson;
 import com.routedraft.repository.LessonRepository;
+import com.routedraft.service.infrastructure.YoutubeClient;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,12 +19,13 @@ import java.util.stream.Collectors;
 @Transactional
 public class LessonService {
     private final LessonRepository lessonRepository;
+    private final YoutubeClient youtubeClient;
 
     /**
      * 수업 지도안 데이터 생성
      */
     @Transactional
-    public void saveLesson(LessonCreateRequest request, LessonResponse response) {
+    public LessonResponse saveLesson(LessonCreateRequest request, LessonResponse response) {
         Lesson lesson = new Lesson();
         
         lesson.setUser(null); 
@@ -55,9 +59,14 @@ public class LessonService {
             lesson.setConclContent(convertFlowStepsToText(response.lessonFlow().conclusion()));
         }
 
-        if (response.motivationAssets() != null) {
-            LessonResponse.MotivationAssets assets = response.motivationAssets();
-            
+        // 3. 동기유발 자료 및 유튜브 실시간 데이터 매핑
+        String finalVideoId = null;
+        String finalVideoTitle = null;
+        String finalThumbnailUrl = null;
+        String finalSearchUrl = null;
+
+        LessonResponse.MotivationAssets assets = response.motivationAssets();
+        if (assets != null) {
             if (assets.recommendedKeywords() != null) {
                 lesson.setMotivationKeywords(String.join(", ", assets.recommendedKeywords()));
             }
@@ -65,7 +74,30 @@ public class LessonService {
             lesson.setEducationChannels(convertChannelsToText(assets.educationChannelSources()));
             lesson.setNewsChannels(convertChannelsToText(assets.newsChannelSources()));
             lesson.setRealWorldStory(assets.realWorldStory());
+
+            if (assets.educationChannelSources() != null && !assets.educationChannelSources().isEmpty() 
+                    && assets.recommendedKeywords() != null && !assets.recommendedKeywords().isEmpty()) {
+                
+                String targetChannel = assets.educationChannelSources().get(0).channelName();
+                String targetKeyword = assets.recommendedKeywords().get(0);
+
+                var youtubeResult = youtubeClient.searchVideo(targetChannel, targetKeyword);
+
+                if (youtubeResult != null) {
+                    finalVideoId = youtubeResult.id().videoId();
+                    finalVideoTitle = youtubeResult.snippet().title();
+                    finalThumbnailUrl = youtubeResult.snippet().thumbnails().highResolution().url();
+                    finalSearchUrl = "https://www.youtube.com/watch?v=" + finalVideoId;
+                } else {
+                    finalSearchUrl = assets.educationChannelSources().get(0).url();
+                }
+            }
         }
+
+        lesson.setYoutubeVideoId(finalVideoId);
+        lesson.setYoutubeVideoTitle(finalVideoTitle);
+        lesson.setYoutubeThumbnailUrl(finalThumbnailUrl);
+        lesson.setYoutubeSearchUrl(finalSearchUrl);
 
         if (response.advancedLearning() != null) {
             lesson.setAdvancedTopic(response.advancedLearning().topic());
@@ -82,8 +114,42 @@ public class LessonService {
         lesson.setActivitySheet(response.studentActivitySheet());
 
         lessonRepository.save(lesson);
-    }
 
+        // 5. 실시간 유튜브 데이터가 주입된 최종 반환용 응답 DTO 조립 및 리턴
+        List<LessonResponse.ChannelLinkAsset> updatedEducationSources = new ArrayList<>();
+        if (assets != null && assets.educationChannelSources() != null && !assets.educationChannelSources().isEmpty()) {
+            var firstChannel = assets.educationChannelSources().get(0);
+            
+            updatedEducationSources.add(new LessonResponse.ChannelLinkAsset(
+                firstChannel.channelName(),
+                finalVideoTitle != null ? finalVideoTitle : firstChannel.videoTitle(),
+                finalSearchUrl,
+                finalVideoId,
+                finalThumbnailUrl
+            ));
+
+            for (int i = 1; i < assets.educationChannelSources().size(); i++) {
+                updatedEducationSources.add(assets.educationChannelSources().get(i));
+            }
+        }
+
+        return new LessonResponse(
+            lesson.getLessonTitle(),
+            response.learningObjectives(),
+            response.environmentSetup(),
+            response.lessonFlow(),
+            response.studentActivitySheet(),
+            new LessonResponse.MotivationAssets(
+                assets != null ? assets.recommendedKeywords() : null,
+                updatedEducationSources,
+                assets != null ? assets.newsChannelSources() : null,
+                assets != null ? assets.realWorldStory() : null
+            ),
+            response.advancedLearning(),
+            response.remedialAssignment()
+        );
+    }
+    
     /**
      * 수업 지도안 전체 목록 조회
      */
