@@ -11,6 +11,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.io.ByteArrayOutputStream;
+
 import java.util.List;
 
 @RestController
@@ -69,5 +73,25 @@ public class LessonController {
         // 서비스 호출해서 단건 데이터 가져오기
         Lesson lesson = lessonService.getLessonById(id);
         return ResponseEntity.ok(lesson);
+    }
+
+    
+    /**
+     * 4. 수업 지도안 표준 PDF 생성 (GET)
+     * 주소: GET http://localhost:8080/api/v1/ai/lessons/{id}/pdf
+     */
+    @GetMapping("/lessons/{id}/pdf")
+    public ResponseEntity<byte[]> downloadLessonPdf(@PathVariable("id") Long id) {
+        
+        byte[] pdfBytes = lessonService.generateLessonPdf(id); 
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "LessonPlan_" + id + ".pdf");
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 }

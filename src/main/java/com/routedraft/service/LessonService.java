@@ -5,6 +5,7 @@ import com.routedraft.dto.LessonResponse;
 import com.routedraft.entity.Lesson;
 import com.routedraft.repository.LessonRepository;
 import com.routedraft.service.infrastructure.YoutubeClient;
+import com.routedraft.util.PdfGenerator;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class LessonService {
     private final LessonRepository lessonRepository;
     private final YoutubeClient youtubeClient;
+    private final PdfGenerator pdfGenerator;
 
     /**
      * 수업 지도안 데이터 생성
@@ -165,6 +167,18 @@ public class LessonService {
     public Lesson getLessonById(Long id) {
         return lessonRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 ID의 수업 지도안을 찾을 수 없습니다. ID: " + id));
+    }
+
+    /**
+     * 수업 지도안 표준 PDF 생성
+     */
+    public byte[] generateLessonPdf(Long id) {
+        // 1. 엔티티 데이터 조회 책임만 수행
+        Lesson lesson = lessonRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 수업 지도안이 존재하지 않습니다. ID: " + id));
+
+        // 2. PDF 생성 전담 레이어로 데이터 위임
+        return pdfGenerator.generateLessonPlan(lesson);
     }
 
     private String convertFlowStepsToText(List<LessonResponse.FlowStep> steps) {

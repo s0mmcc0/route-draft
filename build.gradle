@@ -39,6 +39,9 @@ dependencies {
 
 	// 5. 외부 API 통신을 위한 WebFlux (WebClient 활용)
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// 6. PDF 생성을 위한 OpenPDF 라이브러리
+    implementation 'com.github.librepdf:openpdf:2.0.3'
 }
 
 tasks.named('test') {
