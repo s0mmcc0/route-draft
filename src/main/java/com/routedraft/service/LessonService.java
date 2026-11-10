@@ -3,6 +3,7 @@ package com.routedraft.service;
 import com.routedraft.dto.LessonCreateRequest;
 import com.routedraft.dto.LessonResponse;
 import com.routedraft.entity.Lesson;
+import com.routedraft.mapper.LessonMapper;
 import com.routedraft.repository.LessonRepository;
 import com.routedraft.service.infrastructure.YoutubeClient;
 import com.routedraft.util.PdfGenerator;
@@ -13,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,71 +28,32 @@ public class LessonService {
      */
     @Transactional
     public LessonResponse saveLesson(LessonCreateRequest request, LessonResponse response) {
-        Lesson lesson = new Lesson();
-        
-        lesson.setUser(null); 
-        lesson.setIsPublic(false);
+        // 1. 교사 입력값과 AI 응답을 엔티티로 변환
+        Lesson lesson = LessonMapper.toEntity(request, response);
 
-        // 1. 요청 폼(Request) 입력 데이터 바인딩
-        lesson.setSchoolLevel(request.schoolLevel());
-        lesson.setGrade(request.grade());
-        lesson.setSubject(request.subject());
-        lesson.setAchievementStandard(request.achievementStandard());
-        lesson.setLessonStyle(request.lessonStyle());
-        lesson.setDuration(String.valueOf(request.duration()));
-        lesson.setStudentCount(request.studentCount());
-        lesson.setEnvironment(request.environment());
-
-        // 2. OpenAI 출력 결과 데이터 평탄화 매핑
-        lesson.setLessonTitle(response.lessonTitle());
-        
-        if (response.learningObjectives() != null) {
-            lesson.setLearningObjectives(String.join(", ", response.learningObjectives()));
-        }
-        
-        if (response.environmentSetup() != null) {
-            lesson.setGroupingGuide(response.environmentSetup().grouping());
-            lesson.setMaterials(response.environmentSetup().materialsNeeded());
-        }
-        
-        if (response.lessonFlow() != null) {
-            lesson.setIntroContent(convertFlowStepsToText(response.lessonFlow().introduction()));
-            lesson.setDevContent(convertFlowStepsToText(response.lessonFlow().development()));
-            lesson.setConclContent(convertFlowStepsToText(response.lessonFlow().conclusion()));
-        }
-
-        // 3. 동기유발 자료 및 유튜브 실시간 데이터 매핑
+        // 2. 동기유발 영상: YouTube 실시간 검색 결과 매핑
         String finalVideoId = null;
         String finalVideoTitle = null;
         String finalThumbnailUrl = null;
         String finalSearchUrl = null;
 
         LessonResponse.MotivationAssets assets = response.motivationAssets();
-        if (assets != null) {
-            if (assets.recommendedKeywords() != null) {
-                lesson.setMotivationKeywords(String.join(", ", assets.recommendedKeywords()));
-            }
-            
-            lesson.setEducationChannels(convertChannelsToText(assets.educationChannelSources()));
-            lesson.setNewsChannels(convertChannelsToText(assets.newsChannelSources()));
-            lesson.setRealWorldStory(assets.realWorldStory());
+        if (assets != null
+                && assets.educationChannelSources() != null && !assets.educationChannelSources().isEmpty()
+                && assets.recommendedKeywords() != null && !assets.recommendedKeywords().isEmpty()) {
 
-            if (assets.educationChannelSources() != null && !assets.educationChannelSources().isEmpty() 
-                    && assets.recommendedKeywords() != null && !assets.recommendedKeywords().isEmpty()) {
-                
-                String targetChannel = assets.educationChannelSources().get(0).channelName();
-                String targetKeyword = assets.recommendedKeywords().get(0);
+            String targetChannel = assets.educationChannelSources().get(0).channelName();
+            String targetKeyword = assets.recommendedKeywords().get(0);
 
-                var youtubeResult = youtubeClient.searchVideo(targetChannel, targetKeyword);
+            var youtubeResult = youtubeClient.searchVideo(targetChannel, targetKeyword);
 
-                if (youtubeResult != null) {
-                    finalVideoId = youtubeResult.id().videoId();
-                    finalVideoTitle = youtubeResult.snippet().title();
-                    finalThumbnailUrl = youtubeResult.snippet().thumbnails().highResolution().url();
-                    finalSearchUrl = "https://www.youtube.com/watch?v=" + finalVideoId;
-                } else {
-                    finalSearchUrl = assets.educationChannelSources().get(0).url();
-                }
+            if (youtubeResult != null) {
+                finalVideoId = youtubeResult.id().videoId();
+                finalVideoTitle = youtubeResult.snippet().title();
+                finalThumbnailUrl = youtubeResult.snippet().thumbnails().highResolution().url();
+                finalSearchUrl = "https://www.youtube.com/watch?v=" + finalVideoId;
+            } else {
+                finalSearchUrl = assets.educationChannelSources().get(0).url();
             }
         }
 
@@ -101,27 +62,14 @@ public class LessonService {
         lesson.setYoutubeThumbnailUrl(finalThumbnailUrl);
         lesson.setYoutubeSearchUrl(finalSearchUrl);
 
-        if (response.advancedLearning() != null) {
-            lesson.setAdvancedTopic(response.advancedLearning().topic());
-            lesson.setAdvancedDescription(response.advancedLearning().description());
-            lesson.setAdvancedActivity(response.advancedLearning().activity());
-        }
-
-        if (response.remedialAssignment() != null) {
-            lesson.setRemedialDifficulty(response.remedialAssignment().targetDifficulty());
-            lesson.setRemedialAssignment(response.remedialAssignment().assignmentContent());
-            lesson.setRemedialGuide(response.remedialAssignment().guideForTeacher());
-        }
-        
-        lesson.setActivitySheet(response.studentActivitySheet());
-
+        // 3. 저장
         lessonRepository.save(lesson);
 
-        // 5. 실시간 유튜브 데이터가 주입된 최종 반환용 응답 DTO 조립 및 리턴
+        // 4. 실시간 유튜브 데이터가 주입된 최종 반환용 응답 DTO 조립 및 리턴
         List<LessonResponse.ChannelLinkAsset> updatedEducationSources = new ArrayList<>();
         if (assets != null && assets.educationChannelSources() != null && !assets.educationChannelSources().isEmpty()) {
             var firstChannel = assets.educationChannelSources().get(0);
-            
+
             updatedEducationSources.add(new LessonResponse.ChannelLinkAsset(
                 firstChannel.channelName(),
                 finalVideoTitle != null ? finalVideoTitle : firstChannel.videoTitle(),
@@ -151,7 +99,7 @@ public class LessonService {
             response.remedialAssignment()
         );
     }
-    
+
     /**
      * 수업 지도안 전체 목록 조회
      */
@@ -179,20 +127,5 @@ public class LessonService {
 
         // 2. PDF 생성 전담 레이어로 데이터 위임
         return pdfGenerator.generateLessonPlan(lesson);
-    }
-
-    private String convertFlowStepsToText(List<LessonResponse.FlowStep> steps) {
-        if (steps == null || steps.isEmpty()) return "";
-        return steps.stream()
-                .map(step -> String.format("[%s (%s)]\n- 교사: %s\n- 학생: %s\n- 유의점: %s",
-                        step.stepName(), step.duration(), step.teacherActivity(), step.studentActivity(), step.notes()))
-                .collect(Collectors.joining("\n\n"));
-    }
-
-    private String convertChannelsToText(List<LessonResponse.ChannelLinkAsset> channels) {
-        if (channels == null || channels.isEmpty()) return "";
-        return channels.stream()
-                .map(ch -> String.format("%s|%s|%s", ch.channelName(), ch.videoTitle(), ch.url()))
-                .collect(Collectors.joining(";;"));
     }
 }
